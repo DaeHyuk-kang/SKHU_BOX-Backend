@@ -32,8 +32,8 @@ public class LockerReservation extends BaseEntity {
     @Column(nullable = false)
     private ReservationStatus status;
 
-    @Column(nullable = true)
-    private LocalDateTime startAt;
+    @Column(nullable = false)
+    private LocalDateTime reservedAt;
 
     private LocalDateTime endAt;
 
@@ -41,7 +41,7 @@ public class LockerReservation extends BaseEntity {
         this.user = user;
         this.locker = locker;
         this.status = ReservationStatus.ACTIVE;
-        this.startAt = LocalDateTime.now();
+        this.reservedAt = LocalDateTime.now();
     }
 
     public void returnReservation() {

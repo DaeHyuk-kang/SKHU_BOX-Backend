@@ -6,7 +6,7 @@ public interface LockerReservationService {
 
     LockerReservationResponse reserveLocker(String studentNumber, Long lockerId);
 
-    LockerReservationResponse returnLocker(String email);
+    LockerReservationResponse returnLocker(String studentNumber);
 
-    LockerReservationResponse changeLocker(String email, Long newLockerId);
+    LockerReservationResponse changeLocker(String studentNumber, Long newLockerId);
 }

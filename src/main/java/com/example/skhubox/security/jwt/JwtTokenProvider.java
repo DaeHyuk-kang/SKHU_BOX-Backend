@@ -28,19 +28,19 @@ public class JwtTokenProvider {
     }
 
     public String createToken(Authentication authentication) {
-        String email = authentication.getName();
+        String studentNumber = authentication.getName();
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
-                .subject(email)
+                .subject(studentNumber)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
-    public String getEmailFromToken(String token) {
+    public String getStudentNumberFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()

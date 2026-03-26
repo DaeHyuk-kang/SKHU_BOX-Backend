@@ -5,6 +5,7 @@ import com.example.skhubox.dto.LockerChangeRequest;
 import com.example.skhubox.dto.LockerReservationResponse;
 import com.example.skhubox.dto.LockerReserveRequest;
 import com.example.skhubox.service.LockerReservationService;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class LockerReservationController {
     @PostMapping("/reserve")
     public ResponseEntity<ApiResponse<LockerReservationResponse>> reserveLocker(
             @RequestBody LockerReserveRequest request,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
         String studentNumber = authentication.getName();
 
@@ -34,11 +35,11 @@ public class LockerReservationController {
 
     @PostMapping("/return")
     public ResponseEntity<ApiResponse<LockerReservationResponse>> returnLocker(
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
-        String email = authentication.getName();
+        String studentNumber = authentication.getName();
         LockerReservationResponse response =
-                lockerReservationService.returnLocker(email);
+                lockerReservationService.returnLocker(studentNumber);
 
         return ResponseEntity.ok(ApiResponse.ok("사물함 반납 성공", response));
     }
@@ -46,11 +47,11 @@ public class LockerReservationController {
     @PostMapping("/change")
     public ResponseEntity<ApiResponse<LockerReservationResponse>> changeLocker(
             @RequestBody LockerChangeRequest request,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
-        String email = authentication.getName();
+        String studentNumber = authentication.getName();
         LockerReservationResponse response =
-                lockerReservationService.changeLocker(email, request.getNewLockerId());
+                lockerReservationService.changeLocker(studentNumber, request.getNewLockerId());
 
         return ResponseEntity.ok(ApiResponse.ok("사물함 변경 성공", response));
     }

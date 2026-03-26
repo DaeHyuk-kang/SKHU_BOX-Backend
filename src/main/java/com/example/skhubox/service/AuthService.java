@@ -8,6 +8,7 @@ import com.example.skhubox.repository.UserRepository;
 import com.example.skhubox.security.jwt.JwtTokenProvider;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -50,14 +51,24 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getStudentNumber(),
-                        request.getPassword()
-                )
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getStudentNumber(),
+                            request.getPassword()
+                    )
+            );
 
-        String token = jwtTokenProvider.createToken(authentication);
-        return new LoginResponse(token, "Bearer");
+            String token = jwtTokenProvider.createToken(authentication);
+            return new LoginResponse(token, "Bearer");
+        } catch (BadCredentialsException e) {
+            throw new IllegalArgumentException("학번 또는 비밀번호가 일치하지 않습니다.");
+        } catch (DisabledException e) {
+            throw new IllegalArgumentException("계정이 비활성화되었습니다.");
+        } catch (LockedException e) {
+            throw new IllegalArgumentException("계정이 잠겨 있습니다.");
+        } catch (AuthenticationException e) {
+            throw new IllegalArgumentException("로그인 인증에 실패했습니다.");
+        }
     }
 }

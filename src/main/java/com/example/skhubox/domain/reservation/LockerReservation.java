@@ -32,7 +32,7 @@ public class LockerReservation extends BaseEntity {
     @Column(nullable = false)
     private ReservationStatus status;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime startAt;
 
     private LocalDateTime endAt;

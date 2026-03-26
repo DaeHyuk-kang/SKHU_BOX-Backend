@@ -19,7 +19,7 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody SignupRequest request) {
+    public ResponseEntity<ApiResponse<Object>> signup(@RequestBody SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.ok(ApiResponse.ok("회원가입 성공", null));
     }

@@ -22,6 +22,13 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
     private final OperationLogService operationLogService;
 
+    public NoticeResponse getNotice(Long id) {
+        return NoticeResponse.from(
+                noticeRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.NOTICE_NOT_FOUND))
+        );
+    }
+
     public List<NoticeResponse> getLatestNotices() {
         return noticeRepository.findTop5ByDeletedFalseOrderByPinnedDescCreatedAtDesc()
                 .stream()

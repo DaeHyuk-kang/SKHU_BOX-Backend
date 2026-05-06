@@ -13,6 +13,7 @@ import com.example.skhubox.service.WaitingQueueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,15 +23,11 @@ import java.util.List;
 @Tag(name = "Locker API", description = "사물함 예약 관련 API")
 @RestController
 @RequestMapping("/api/lockers")
+@RequiredArgsConstructor
 public class LockerReservationController {
 
     private final LockerReservationService lockerReservationService;
     private final WaitingQueueService waitingQueueService;
-
-    public LockerReservationController(LockerReservationService lockerReservationService, WaitingQueueService waitingQueueService) {
-        this.lockerReservationService = lockerReservationService;
-        this.waitingQueueService = waitingQueueService;
-    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<LockerResponse>>> getAllLockers() {

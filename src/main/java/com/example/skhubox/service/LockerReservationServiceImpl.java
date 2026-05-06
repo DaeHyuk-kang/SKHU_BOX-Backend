@@ -119,6 +119,7 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     }
 
     @Override
+    @Transactional(noRollbackFor = BusinessException.class)
     public LockerReservationResponse returnLocker(String studentNumber) {
         reservationExpirationService.expireOverdueReservations();
 

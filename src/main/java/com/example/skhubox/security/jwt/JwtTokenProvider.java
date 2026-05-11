@@ -74,8 +74,8 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            getClaims(token);
-            return true;
+            Claims claims = getClaims(token);
+            return !"refresh".equals(claims.get("type", String.class));
         } catch (Exception e) {
             return false;
         }

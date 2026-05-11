@@ -29,6 +29,13 @@ public class NoticeService {
                 .toList();
     }
 
+    public List<NoticeResponse> getAllNotices() {
+        return noticeRepository.findAllByDeletedFalseOrderByPinnedDescCreatedAtDesc()
+                .stream()
+                .map(NoticeResponse::from)
+                .toList();
+    }
+
     @Transactional
     public NoticeResponse createNotice(NoticeCreateRequest request) {
         Notice notice = noticeRepository.save(new Notice(

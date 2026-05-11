@@ -1,5 +1,6 @@
 package com.example.skhubox.service;
 
+import com.example.skhubox.common.RedisKeys;
 import com.example.skhubox.domain.locker.Locker;
 import com.example.skhubox.domain.operation.OperationLogType;
 import com.example.skhubox.domain.reservation.LockerReservation;
@@ -8,6 +9,7 @@ import com.example.skhubox.domain.user.User;
 import com.example.skhubox.dto.LockerReservationResponse;
 import com.example.skhubox.dto.LockerResponse;
 import com.example.skhubox.dto.QueueResponse;
+import com.example.skhubox.dto.ReservationHistoryResponse;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.repository.LockerRepository;
@@ -41,13 +43,11 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     private final OperationLogService operationLogService;
     private final RedisTemplate<String, String> redisTemplate;
 
-    private static final String LOCK_PREFIX = "lock:locker:";
-
     @Override
     public LockerReservationResponse reserveLocker(String studentNumber, Long lockerId) {
         reservationExpirationService.expireOverdueReservations();
 
-        String lockKey = LOCK_PREFIX + lockerId;
+        String lockKey = RedisKeys.LOCKER_LOCK + lockerId;
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", 5, TimeUnit.SECONDS);
         
         if (Boolean.FALSE.equals(acquired)) {
@@ -60,19 +60,17 @@ public class LockerReservationServiceImpl implements LockerReservationService {
                 Long myRank = waitingQueueService.getRank(studentNumber, lockerId);
 
                 if (myRank == null) {
-                    QueueResponse queueResponse = waitingQueueService.register(studentNumber, lockerId);
-                    myRank = queueResponse.getRank();
-                    log.info("[Queue] User {} auto-registered for locker {}. Rank: {}", 
-                            studentNumber, lockerId, myRank);
+                    throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
+                            "현재 대기열 모드입니다. 먼저 대기열에 등록해주세요.");
                 }
 
                 if (!waitingQueueService.isFirstUser(studentNumber, lockerId)) {
-                    log.warn("[Queue] User {} is in queue but NOT first for locker {}. Current Rank: {}", 
+                    log.warn("[Queue] User {} is in queue but NOT first for locker {}. Current Rank: {}",
                             studentNumber, lockerId, myRank);
                     throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
-                            "현재 대기열 모드입니다. 대기열에 등록되었습니다. 아직 본인 차례가 아닙니다. 내 순번: " + myRank + "번");
+                            "아직 본인 차례가 아닙니다. 내 순번: " + myRank + "번");
                 }
-                
+
                 log.info("[Queue] User {} is FIRST in queue for locker {}. Proceeding to reservation.", studentNumber, lockerId);
             }
 
@@ -161,27 +159,26 @@ public class LockerReservationServiceImpl implements LockerReservationService {
         Long firstId = Math.min(currentLockerId, newLockerId);
         Long secondId = Math.max(currentLockerId, newLockerId);
 
-        getLockedLocker(firstId);
+        Locker firstLocker = getLockedLocker(firstId);
         Locker secondLocker = getLockedLocker(secondId);
 
-        Locker newLocker = (firstId.equals(newLockerId)) ? getLockedLocker(firstId) : secondLocker;
+        Locker currentLocker = firstId.equals(currentLockerId) ? firstLocker : secondLocker;
+        Locker newLocker = firstId.equals(newLockerId) ? firstLocker : secondLocker;
 
         validateNewLocker(newLocker);
 
         try {
-            Locker oldLocker = currentReservation.getLocker();
             currentReservation.returnReservation();
-            oldLocker.release();
+            currentLocker.release();
 
             LockerReservation newReservation = new LockerReservation(user, newLocker);
-            // 만료일은 이전 예약의 것을 그대로 따르거나 새로 계산 (여기서는 새로 계산된 것이 들어가도록 엔티티 생성자 활용)
             LockerReservation savedReservation = lockerReservationRepository.saveAndFlush(newReservation);
             newLocker.occupy(savedReservation.getExpiredAt());
             operationLogService.log(
                     OperationLogType.RESERVATION_CHANGED,
                     "사물함 변경 완료",
                     String.format("%s 사용자가 %s번에서 %s번 사물함으로 변경했습니다.",
-                            studentNumber, oldLocker.getLockerNumber(), newLocker.getLockerNumber())
+                            studentNumber, currentLocker.getLockerNumber(), newLocker.getLockerNumber())
             );
             
             log.info("[Change-Success] User {} changed locker from {} to {}. New Expiry: {}", 
@@ -213,6 +210,16 @@ public class LockerReservationServiceImpl implements LockerReservationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NO_ACTIVE_RESERVATION));
 
         return toResponse(reservation, "현재 예약 정보 조회 성공");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReservationHistoryResponse> getMyReservationHistory(String studentNumber) {
+        User user = getUser(studentNumber);
+        return lockerReservationRepository.findAllByUser_IdOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(ReservationHistoryResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Override

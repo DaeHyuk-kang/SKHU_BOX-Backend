@@ -8,7 +8,9 @@ import java.util.List;
 
 public interface ComplaintService {
     ComplaintResponse createComplaint(String studentNumber, ComplaintRequest request);
+    ComplaintResponse getComplaintDetail(String studentNumber, Long complaintId);
     List<ComplaintResponse> getMyComplaints(String studentNumber);
     List<ComplaintResponse> getAllComplaints();
     ComplaintResponse answerComplaint(Long complaintId, ComplaintAnswerRequest request);
+    void cancelComplaint(String studentNumber, Long complaintId);
 }

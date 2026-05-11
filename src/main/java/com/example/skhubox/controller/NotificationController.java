@@ -37,10 +37,20 @@ public class NotificationController {
                 notificationService.getUnreadCount(userDetails.getUsername())));
     }
 
+    @Operation(summary = "알림 전체 읽음 처리", description = "본인의 모든 알림을 읽음 상태로 변경합니다.")
+    @PatchMapping("/read-all")
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        notificationService.markAllAsRead(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("모든 알림을 읽음 처리했습니다.", null));
+    }
+
     @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 상태로 변경합니다.")
     @PatchMapping("/{id}/read")
-    public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
-        notificationService.markAsRead(id);
+    public ResponseEntity<ApiResponse<Void>> markAsRead(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        notificationService.markAsRead(userDetails.getUsername(), id);
         return ResponseEntity.ok(ApiResponse.ok("알림을 읽음 처리했습니다.", null));
     }
 }

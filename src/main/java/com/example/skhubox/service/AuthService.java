@@ -8,6 +8,7 @@ import com.example.skhubox.dto.auth.LoginResponse;
 import com.example.skhubox.dto.auth.PasswordResetConfirmRequest;
 import com.example.skhubox.dto.auth.PasswordResetRequest;
 import com.example.skhubox.dto.auth.SignupRequest;
+import com.example.skhubox.common.RedisKeys;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.repository.UserRepository;
@@ -46,17 +47,13 @@ public class AuthService {
     private final JavaMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
 
-    private static final String EMAIL_VERIFY_KEY_PREFIX = "email:verify:";
-    private static final String EMAIL_VERIFIED_KEY_PREFIX = "email:verified:";
-    private static final String PASSWORD_RESET_KEY_PREFIX = "password:reset:";
-    private static final String REFRESH_TOKEN_KEY_PREFIX = "refresh:token:";
     private static final long VERIFY_CODE_EXPIRATION = 5;
     private static final long VERIFIED_FLAG_EXPIRATION = 30;
     private static final long PASSWORD_RESET_EXPIRATION = 15;
     private static final String PASSWORD_RESET_URL_ENV = "PASSWORD_RESET_URL";
 
     public void signup(SignupRequest request) {
-        String isVerified = redisTemplate.opsForValue().get(EMAIL_VERIFIED_KEY_PREFIX + request.getEmail());
+        String isVerified = redisTemplate.opsForValue().get(RedisKeys.EMAIL_VERIFIED + request.getEmail());
         if (isVerified == null) {
             throw new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
@@ -78,7 +75,7 @@ public class AuthService {
         );
 
         userRepository.save(user);
-        redisTemplate.delete(EMAIL_VERIFIED_KEY_PREFIX + request.getEmail());
+        redisTemplate.delete(RedisKeys.EMAIL_VERIFIED + request.getEmail());
     }
 
     public void sendVerificationCode(EmailRequest request) {
@@ -92,7 +89,7 @@ public class AuthService {
 
         String code = generateCode();
         redisTemplate.opsForValue().set(
-                EMAIL_VERIFY_KEY_PREFIX + email,
+                RedisKeys.EMAIL_VERIFY + email,
                 code,
                 VERIFY_CODE_EXPIRATION,
                 TimeUnit.MINUTES
@@ -102,17 +99,17 @@ public class AuthService {
 
     public void verifyCode(EmailVerifyRequest request) {
         String email = request.getEmail();
-        String savedCode = redisTemplate.opsForValue().get(EMAIL_VERIFY_KEY_PREFIX + email);
+        String savedCode = redisTemplate.opsForValue().get(RedisKeys.EMAIL_VERIFY + email);
         if (savedCode == null || !savedCode.equals(request.getCode())) {
             throw new BusinessException(ErrorCode.INVALID_VERIFICATION_CODE);
         }
         redisTemplate.opsForValue().set(
-                EMAIL_VERIFIED_KEY_PREFIX + email,
+                RedisKeys.EMAIL_VERIFIED + email,
                 "true",
                 VERIFIED_FLAG_EXPIRATION,
                 TimeUnit.MINUTES
         );
-        redisTemplate.delete(EMAIL_VERIFY_KEY_PREFIX + email);
+        redisTemplate.delete(RedisKeys.EMAIL_VERIFY + email);
     }
 
     public void requestPasswordReset(PasswordResetRequest request) {
@@ -120,7 +117,7 @@ public class AuthService {
                 .ifPresent(user -> {
                     String code = generateCode();
                     redisTemplate.opsForValue().set(
-                            PASSWORD_RESET_KEY_PREFIX + code,
+                            RedisKeys.PASSWORD_RESET + code,
                             user.getStudentNumber(),
                             PASSWORD_RESET_EXPIRATION,
                             TimeUnit.MINUTES
@@ -130,14 +127,14 @@ public class AuthService {
     }
 
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
-        String studentNumber = redisTemplate.opsForValue().get(PASSWORD_RESET_KEY_PREFIX + request.getCode());
+        String studentNumber = redisTemplate.opsForValue().get(RedisKeys.PASSWORD_RESET + request.getCode());
         if (studentNumber == null) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN);
         }
         User user = userRepository.findByStudentNumberAndDeletedFalse(studentNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
-        redisTemplate.delete(PASSWORD_RESET_KEY_PREFIX + request.getCode());
+        redisTemplate.delete(RedisKeys.PASSWORD_RESET + request.getCode());
     }
 
     private String generateCode() {
@@ -203,7 +200,7 @@ public class AuthService {
             String studentNumber = userDetails.getUsername();
 
             redisTemplate.opsForValue().set(
-                    REFRESH_TOKEN_KEY_PREFIX + studentNumber,
+                    RedisKeys.REFRESH_TOKEN + studentNumber,
                     refreshToken,
                     jwtTokenProvider.getRefreshExpiration(),
                     TimeUnit.MILLISECONDS
@@ -232,7 +229,7 @@ public class AuthService {
         }
 
         String studentNumber = jwtTokenProvider.getStudentNumber(refreshToken);
-        String stored = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + studentNumber);
+        String stored = redisTemplate.opsForValue().get(RedisKeys.REFRESH_TOKEN + studentNumber);
 
         if (stored == null || !stored.equals(refreshToken)) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
@@ -247,7 +244,7 @@ public class AuthService {
         String newRefreshToken = jwtTokenProvider.createRefreshToken(authentication);
 
         redisTemplate.opsForValue().set(
-                REFRESH_TOKEN_KEY_PREFIX + studentNumber,
+                RedisKeys.REFRESH_TOKEN + studentNumber,
                 newRefreshToken,
                 jwtTokenProvider.getRefreshExpiration(),
                 TimeUnit.MILLISECONDS
@@ -262,6 +259,6 @@ public class AuthService {
     }
 
     public void logout(String studentNumber) {
-        redisTemplate.delete(REFRESH_TOKEN_KEY_PREFIX + studentNumber);
+        redisTemplate.delete(RedisKeys.REFRESH_TOKEN + studentNumber);
     }
 }

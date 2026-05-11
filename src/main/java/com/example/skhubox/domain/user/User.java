@@ -72,6 +72,11 @@ public class User extends BaseEntity {
         this.notificationEnabled = notificationEnabled;
     }
 
+    public void updateProfile(String name, String department) {
+        this.name = name;
+        this.department = department;
+    }
+
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
@@ -79,5 +84,7 @@ public class User extends BaseEntity {
     public void withdraw() {
         this.deleted = true;
         this.fcmToken = null;
+        this.studentNumber = "deleted_" + this.id + "_" + this.studentNumber;
+        this.email = "deleted_" + this.id + "_" + this.email;
     }
 }

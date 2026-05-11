@@ -42,9 +42,19 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long notificationId) {
+    public void markAllAsRead(String studentNumber) {
+        User user = getUserByStudentNumber(studentNumber);
+        notificationRepository.markAllAsReadByUserId(user.getId());
+    }
+
+    @Transactional
+    public void markAsRead(String studentNumber, Long notificationId) {
+        User user = getUserByStudentNumber(studentNumber);
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR)); // 알림 없음
+                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+        if (!notification.getUser().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_ACCESS_DENIED);
+        }
         notification.markAsRead();
     }
 

@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
     List<Notice> findTop5ByDeletedFalseOrderByPinnedDescCreatedAtDesc();
+    List<Notice> findAllByDeletedFalseOrderByPinnedDescCreatedAtDesc();
     Optional<Notice> findByIdAndDeletedFalse(Long id);
 }

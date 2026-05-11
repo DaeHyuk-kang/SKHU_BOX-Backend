@@ -37,6 +37,8 @@ public interface LockerReservationRepository extends JpaRepository<LockerReserva
 
     long countByLocker_IdAndStatus(Long lockerId, ReservationStatus status);
 
+    List<LockerReservation> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
+
     @Query("SELECT MIN(r.expiredAt) FROM LockerReservation r WHERE r.status = :status")
     Optional<LocalDateTime> findMinExpiredAtByStatus(ReservationStatus status);
 

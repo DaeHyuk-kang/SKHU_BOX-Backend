@@ -44,11 +44,8 @@ public class DashboardService {
     private final ComplaintRepository complaintRepository;
     private final NoticeRepository noticeRepository;
     private final OperationLogRepository operationLogRepository;
-    private final ReservationExpirationService reservationExpirationService;
 
     public UserDashboardResponse getUserDashboard(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = userRepository.findByStudentNumber(studentNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -89,8 +86,6 @@ public class DashboardService {
     }
 
     public AdminDashboardResponse getAdminDashboard(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User admin = userRepository.findByStudentNumber(studentNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 

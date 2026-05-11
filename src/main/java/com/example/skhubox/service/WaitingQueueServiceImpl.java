@@ -1,5 +1,6 @@
 package com.example.skhubox.service;
 
+import com.example.skhubox.common.RedisKeys;
 import com.example.skhubox.dto.QueueResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +16,10 @@ import java.util.concurrent.TimeUnit;
 public class WaitingQueueServiceImpl implements WaitingQueueService {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private static final String QUEUE_KEY_PREFIX = "locker:queue:";
 
     @Override
     public QueueResponse register(String studentNumber, Long lockerId) {
-        String key = QUEUE_KEY_PREFIX + lockerId;
+        String key = RedisKeys.LOCKER_QUEUE + lockerId;
 
         Long existingRank = redisTemplate.opsForZSet().rank(key, studentNumber);
         if (existingRank != null) {
@@ -39,14 +39,14 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
 
     @Override
     public Long getRank(String studentNumber, Long lockerId) {
-        String key = QUEUE_KEY_PREFIX + lockerId;
+        String key = RedisKeys.LOCKER_QUEUE + lockerId;
         Long rank = redisTemplate.opsForZSet().rank(key, studentNumber);
         return (rank != null) ? rank + 1 : null;
     }
 
     @Override
     public String getFirstStudentNumber(Long lockerId) {
-        String key = QUEUE_KEY_PREFIX + lockerId;
+        String key = RedisKeys.LOCKER_QUEUE + lockerId;
         Set<String> members = redisTemplate.opsForZSet().range(key, 0, 0);
         if (members == null || members.isEmpty()) {
             return null;
@@ -62,18 +62,27 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
 
     @Override
     public void removeFromQueue(String studentNumber, Long lockerId) {
-        String key = QUEUE_KEY_PREFIX + lockerId;
+        String key = RedisKeys.LOCKER_QUEUE + lockerId;
         redisTemplate.opsForZSet().remove(key, studentNumber);
         log.info("[Queue] User {} removed from queue for locker {}", studentNumber, lockerId);
     }
 
     @Override
     public void skipFirstUser(Long lockerId) {
-        String key = QUEUE_KEY_PREFIX + lockerId;
+        String key = RedisKeys.LOCKER_QUEUE + lockerId;
         String first = getFirstStudentNumber(lockerId);
         if (first != null) {
             redisTemplate.opsForZSet().removeRange(key, 0, 0);
             log.warn("[Queue-Admin] First user {} skipped for locker {} by administrator", first, lockerId);
+        }
+    }
+
+    @Override
+    public void clearAllQueues() {
+        Set<String> keys = redisTemplate.keys(RedisKeys.LOCKER_QUEUE + "*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+            log.info("[Queue-Admin] Cleared {} queue keys on queue mode disable", keys.size());
         }
     }
 }

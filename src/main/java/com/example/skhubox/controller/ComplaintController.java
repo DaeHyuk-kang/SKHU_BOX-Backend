@@ -42,4 +42,24 @@ public class ComplaintController {
         List<ComplaintResponse> response = complaintService.getMyComplaints(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("내 민원 목록 조회 성공", response));
     }
+
+    @Operation(summary = "민원 상세 조회", description = "민원 ID로 특정 민원의 상세 내용을 조회합니다. 본인 민원만 조회 가능합니다.")
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ComplaintResponse>> getComplaintDetail(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("민원 상세 조회 성공",
+                complaintService.getComplaintDetail(userDetails.getUsername(), id)));
+    }
+
+    @Operation(summary = "민원 취소", description = "대기중 상태인 본인 민원을 취소합니다.")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> cancelComplaint(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        complaintService.cancelComplaint(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.ok("민원이 취소되었습니다.", null));
+    }
 }

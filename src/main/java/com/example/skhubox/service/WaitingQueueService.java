@@ -9,4 +9,5 @@ public interface WaitingQueueService {
     boolean isFirstUser(String studentNumber, Long lockerId);
     void removeFromQueue(String studentNumber, Long lockerId);
     void skipFirstUser(Long lockerId);
+    void clearAllQueues();
 }

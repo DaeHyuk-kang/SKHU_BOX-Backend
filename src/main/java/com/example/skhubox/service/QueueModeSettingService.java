@@ -16,6 +16,7 @@ public class QueueModeSettingService {
     private static final Long QUEUE_MODE_SETTING_ID = 1L;
 
     private final QueueModeSettingRepository queueModeSettingRepository;
+    private final WaitingQueueService waitingQueueService;
 
     @PostConstruct
     public void init() {
@@ -35,6 +36,10 @@ public class QueueModeSettingService {
 
         setting.changeEnabled(enabled);
         queueModeSettingRepository.save(setting);
+
+        if (!enabled) {
+            waitingQueueService.clearAllQueues();
+        }
 
         return new QueueModeResponse(setting.isEnabled());
     }

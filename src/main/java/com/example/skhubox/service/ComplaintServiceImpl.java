@@ -63,6 +63,16 @@ public class ComplaintServiceImpl implements ComplaintService {
     }
 
     @Override
+    public ComplaintResponse getComplaintDetail(String studentNumber, Long complaintId) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMPLAINT_NOT_FOUND));
+        if (!complaint.getUser().getStudentNumber().equals(studentNumber)) {
+            throw new BusinessException(ErrorCode.COMPLAINT_ACCESS_DENIED);
+        }
+        return ComplaintResponse.of(complaint);
+    }
+
+    @Override
     public List<ComplaintResponse> getMyComplaints(String studentNumber) {
         User user = userRepository.findByStudentNumber(studentNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -81,9 +91,38 @@ public class ComplaintServiceImpl implements ComplaintService {
 
     @Override
     @Transactional
+    public void cancelComplaint(String studentNumber, Long complaintId) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMPLAINT_NOT_FOUND));
+        if (!complaint.getUser().getStudentNumber().equals(studentNumber)) {
+            throw new BusinessException(ErrorCode.COMPLAINT_ACCESS_DENIED);
+        }
+        if (complaint.getStatus() != ComplaintStatus.PENDING) {
+            throw new BusinessException(ErrorCode.COMPLAINT_CANNOT_CANCEL);
+        }
+        complaint.updateStatus(ComplaintStatus.CANCELLED);
+    }
+
+    private static final java.util.Set<ComplaintStatus> ADMIN_ALLOWED_STATUSES = java.util.Set.of(
+            ComplaintStatus.UNDER_REVIEW, ComplaintStatus.IN_PROGRESS,
+            ComplaintStatus.COMPLETED, ComplaintStatus.REJECTED
+    );
+    private static final java.util.Set<ComplaintStatus> CLOSED_STATUSES = java.util.Set.of(
+            ComplaintStatus.COMPLETED, ComplaintStatus.CANCELLED, ComplaintStatus.REJECTED
+    );
+
+    @Override
+    @Transactional
     public ComplaintResponse answerComplaint(Long complaintId, ComplaintAnswerRequest request) {
         Complaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMPLAINT_NOT_FOUND));
+
+        if (CLOSED_STATUSES.contains(complaint.getStatus())) {
+            throw new BusinessException(ErrorCode.COMPLAINT_ALREADY_CLOSED);
+        }
+        if (!ADMIN_ALLOWED_STATUSES.contains(request.getStatus())) {
+            throw new BusinessException(ErrorCode.COMPLAINT_INVALID_STATUS);
+        }
 
         complaint.answerComplaint(request.getStatus(), request.getAnswer());
         if (request.getStatus() == ComplaintStatus.COMPLETED) {

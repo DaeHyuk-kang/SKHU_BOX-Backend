@@ -36,11 +36,12 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.ok(message, null));
     }
 
-    @Operation(summary = "사용자 강제 탈퇴", description = "특정 사용자를 강제로 탈퇴 처리합니다.")
+    @Operation(summary = "사용자 강제 탈퇴", description = "특정 사용자를 강제로 탈퇴 처리합니다. 관리자 계정이나 본인은 탈퇴 불가합니다.")
     @DeleteMapping("/{studentNumber}")
     public ResponseEntity<ApiResponse<Void>> withdrawUser(
-            @PathVariable String studentNumber) {
-        userService.withdrawUser(studentNumber);
+            @PathVariable String studentNumber,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails adminDetails) {
+        userService.adminWithdrawUser(adminDetails.getUsername(), studentNumber);
         return ResponseEntity.ok(ApiResponse.ok("사용자가 강제 탈퇴 처리되었습니다.", null));
     }
 }

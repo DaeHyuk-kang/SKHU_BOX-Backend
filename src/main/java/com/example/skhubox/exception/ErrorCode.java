@@ -16,6 +16,8 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "U004", "비밀번호가 일치하지 않습니다."),
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "U005", "로그인 인증에 실패했습니다."),
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "U006", "관리자만 접근할 수 있습니다."),
+    CANNOT_WITHDRAW_ADMIN(HttpStatus.BAD_REQUEST, "U012", "관리자 계정은 강제 탈퇴할 수 없습니다."),
+    CANNOT_WITHDRAW_SELF(HttpStatus.BAD_REQUEST, "U013", "자기 자신을 탈퇴 처리할 수 없습니다."),
     EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "U007", "이메일 인증이 완료되지 않았습니다."),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "U008", "유효하지 않은 인증 코드입니다."),
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U009", "이메일 발송에 실패했습니다."),
@@ -33,6 +35,13 @@ public enum ErrorCode {
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L009", "예약 처리 중 충돌이 발생했습니다. 다시 시도해주세요."),
 
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 공지사항입니다."),
+
+    COMPLAINT_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "존재하지 않는 민원입니다."),
+    COMPLAINT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C004", "해당 민원에 접근 권한이 없습니다."),
+    COMPLAINT_CANNOT_CANCEL(HttpStatus.BAD_REQUEST, "C005", "대기중 상태인 민원만 취소할 수 있습니다."),
+    NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C006", "해당 알림에 접근 권한이 없습니다."),
+    COMPLAINT_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "C007", "이미 완료 또는 종료된 민원입니다."),
+    COMPLAINT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "C008", "관리자가 설정할 수 없는 민원 상태입니다."),
 
     QUEUE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 모드 설정 정보를 찾을 수 없습니다.");
 

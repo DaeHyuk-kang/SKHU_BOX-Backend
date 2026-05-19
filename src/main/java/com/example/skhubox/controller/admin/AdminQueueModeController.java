@@ -3,6 +3,8 @@ package com.example.skhubox.controller.admin;
 import com.example.skhubox.dto.ApiResponse;
 import com.example.skhubox.dto.admin.QueueModeResponse;
 import com.example.skhubox.dto.admin.QueueModeUpdateRequest;
+import com.example.skhubox.exception.BusinessException;
+import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.service.QueueModeSettingService;
 import com.example.skhubox.service.WaitingQueueService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,9 +41,12 @@ public class AdminQueueModeController {
         return ResponseEntity.ok(ApiResponse.ok(message, response));
     }
 
-    @PostMapping("/{lockerId}/skip")
-    public ResponseEntity<ApiResponse<Void>> skipFirstUser(@PathVariable Long lockerId) {
-        waitingQueueService.skipFirstUser(lockerId);
+    @PostMapping("/skip")
+    public ResponseEntity<ApiResponse<Void>> skipFirstUser() {
+        if (!queueModeSettingService.isQueueModeEnabled()) {
+            throw new BusinessException(ErrorCode.QUEUE_MODE_NOT_ENABLED);
+        }
+        waitingQueueService.skipFirstUser();
         return ResponseEntity.ok(ApiResponse.ok("대기열 1순위 사용자를 스킵했습니다.", null));
     }
 }

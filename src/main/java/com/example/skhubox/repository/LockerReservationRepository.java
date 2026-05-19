@@ -3,6 +3,7 @@ package com.example.skhubox.repository;
 import com.example.skhubox.domain.reservation.LockerReservation;
 import com.example.skhubox.domain.reservation.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,10 @@ public interface LockerReservationRepository extends JpaRepository<LockerReserva
     long countByLocker_IdAndStatus(Long lockerId, ReservationStatus status);
 
     List<LockerReservation> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE LockerReservation r SET r.user = null WHERE r.user.id = :userId")
+    void nullifyUser(Long userId);
 
     @Query("SELECT MIN(r.expiredAt) FROM LockerReservation r WHERE r.status = :status")
     Optional<LocalDateTime> findMinExpiredAtByStatus(ReservationStatus status);

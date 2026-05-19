@@ -66,7 +66,7 @@ public class ComplaintServiceImpl implements ComplaintService {
     public ComplaintResponse getComplaintDetail(String studentNumber, Long complaintId) {
         Complaint complaint = complaintRepository.findById(complaintId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMPLAINT_NOT_FOUND));
-        if (!complaint.getUser().getStudentNumber().equals(studentNumber)) {
+        if (complaint.getUser() == null || !complaint.getUser().getStudentNumber().equals(studentNumber)) {
             throw new BusinessException(ErrorCode.COMPLAINT_ACCESS_DENIED);
         }
         return ComplaintResponse.of(complaint);
@@ -94,7 +94,7 @@ public class ComplaintServiceImpl implements ComplaintService {
     public void cancelComplaint(String studentNumber, Long complaintId) {
         Complaint complaint = complaintRepository.findById(complaintId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMPLAINT_NOT_FOUND));
-        if (!complaint.getUser().getStudentNumber().equals(studentNumber)) {
+        if (complaint.getUser() == null || !complaint.getUser().getStudentNumber().equals(studentNumber)) {
             throw new BusinessException(ErrorCode.COMPLAINT_ACCESS_DENIED);
         }
         if (complaint.getStatus() != ComplaintStatus.PENDING) {

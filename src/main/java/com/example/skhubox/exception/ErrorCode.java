@@ -32,7 +32,7 @@ public enum ErrorCode {
     SAME_LOCKER_CHANGE(HttpStatus.BAD_REQUEST, "L006", "동일한 사물함으로 변경할 수 없습니다."),
     QUEUE_MODE_RESERVATION_BLOCKED(HttpStatus.BAD_REQUEST, "L007", "현재 대기열 모드가 활성화되어 있어 바로 예약할 수 없습니다. 대기열을 통해 진행해주세요."),
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "L008", "해당 예약 정보를 찾을 수 없습니다."),
-    LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L009", "예약 처리 중 충돌이 발생했습니다. 다시 시도해주세요."),
+    LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L009", "다른 사람이 이미 예약을 시도 중입니다."),
 
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 공지사항입니다."),
 
@@ -43,7 +43,9 @@ public enum ErrorCode {
     COMPLAINT_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "C007", "이미 완료 또는 종료된 민원입니다."),
     COMPLAINT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "C008", "관리자가 설정할 수 없는 민원 상태입니다."),
 
-    QUEUE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 모드 설정 정보를 찾을 수 없습니다.");
+    QUEUE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 모드 설정 정보를 찾을 수 없습니다."),
+    QUEUE_MODE_NOT_ENABLED(HttpStatus.BAD_REQUEST, "Q002", "대기열 모드가 활성화되어 있지 않습니다."),
+    QUEUE_FULL(HttpStatus.TOO_MANY_REQUESTS, "Q003", "대기열이 가득 찼습니다. 잠시 후 다시 시도해주세요. (최대 500명)");
 
     private final HttpStatus status;
     private final String code;

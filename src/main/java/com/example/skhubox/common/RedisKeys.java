@@ -9,6 +9,5 @@ public final class RedisKeys {
     public static final String PASSWORD_RESET = "password:reset:";
     public static final String REFRESH_TOKEN = "refresh:token:";
     public static final String LOCKER_LOCK = "lock:locker:";
-    public static final String LOCKER_QUEUE = "locker:queue:";
     public static final String LOCKER_QUEUE_GLOBAL = "locker:queue:global";
 }

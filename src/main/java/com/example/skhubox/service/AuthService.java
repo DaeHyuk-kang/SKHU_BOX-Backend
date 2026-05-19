@@ -29,7 +29,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Random;
+import java.security.SecureRandom;
+import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -137,9 +138,12 @@ public class AuthService {
         redisTemplate.delete(RedisKeys.PASSWORD_RESET + request.getCode());
     }
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private String generateCode() {
-        Random random = new Random();
-        return String.format("%06d", random.nextInt(1000000));
+        byte[] bytes = new byte[16];
+        SECURE_RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 
     private void sendEmail(String to, String code) {

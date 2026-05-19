@@ -47,6 +47,10 @@ public interface LockerReservationRepository extends JpaRepository<LockerReserva
     @Query("SELECT MIN(r.expiredAt) FROM LockerReservation r WHERE r.status = :status")
     Optional<LocalDateTime> findMinExpiredAtByStatus(ReservationStatus status);
 
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE LockerReservation r SET r.expiredAt = :newExpiry WHERE r.status = :status")
+    int bulkUpdateExpiryDate(ReservationStatus status, LocalDateTime newExpiry);
+
     long countByStatusAndExpiredAtGreaterThanEqualAndExpiredAtLessThanEqual(
             ReservationStatus status, LocalDateTime from, LocalDateTime to);
 }

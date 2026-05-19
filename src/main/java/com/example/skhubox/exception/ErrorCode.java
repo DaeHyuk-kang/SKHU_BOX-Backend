@@ -35,13 +35,14 @@ public enum ErrorCode {
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L009", "다른 사람이 이미 예약을 시도 중입니다."),
 
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "존재하지 않는 공지사항입니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N002", "존재하지 않는 알림입니다."),
+    NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "N003", "해당 알림에 접근 권한이 없습니다."),
 
     COMPLAINT_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "존재하지 않는 민원입니다."),
     COMPLAINT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C004", "해당 민원에 접근 권한이 없습니다."),
     COMPLAINT_CANNOT_CANCEL(HttpStatus.BAD_REQUEST, "C005", "대기중 상태인 민원만 취소할 수 있습니다."),
-    NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C006", "해당 알림에 접근 권한이 없습니다."),
-    COMPLAINT_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "C007", "이미 완료 또는 종료된 민원입니다."),
-    COMPLAINT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "C008", "관리자가 설정할 수 없는 민원 상태입니다."),
+    COMPLAINT_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "C006", "이미 완료 또는 종료된 민원입니다."),
+    COMPLAINT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "C007", "관리자가 설정할 수 없는 민원 상태입니다."),
 
     QUEUE_SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 모드 설정 정보를 찾을 수 없습니다."),
     QUEUE_MODE_NOT_ENABLED(HttpStatus.BAD_REQUEST, "Q002", "대기열 모드가 활성화되어 있지 않습니다."),

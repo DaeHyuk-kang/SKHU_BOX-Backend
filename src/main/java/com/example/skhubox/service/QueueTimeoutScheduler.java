@@ -35,8 +35,7 @@ public class QueueTimeoutScheduler {
             Double score = redisTemplate.opsForZSet().score(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
             if (score != null && score < cutoff) {
                 redisTemplate.opsForZSet().remove(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
-                redisTemplate.delete(RedisKeys.REFRESH_TOKEN + studentNumber);
-                log.info("[Queue-Timeout] User {} removed and logged out (10min timeout)", studentNumber);
+                log.info("[Queue-Timeout] User {} removed from queue (10min timeout)", studentNumber);
             }
         }
     }

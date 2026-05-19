@@ -13,6 +13,7 @@ import java.util.List;
 @Repository
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     List<Complaint> findByUserId(Long userId);
+    List<Complaint> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Complaint c SET c.user = null WHERE c.user.id = :userId")

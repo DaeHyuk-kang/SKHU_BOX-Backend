@@ -77,7 +77,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         User user = userRepository.findByStudentNumber(studentNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        return complaintRepository.findByUserId(user.getId()).stream()
+        return complaintRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
                 .map(ComplaintResponse::of)
                 .collect(Collectors.toList());
     }
@@ -133,13 +133,15 @@ public class ComplaintServiceImpl implements ComplaintService {
             );
         }
 
-        // 알림 생성
-        notificationService.createNotification(
-                complaint.getUser(),
-                "민원 답변 등록",
-                String.format("%s번 사물함 민원에 대한 답변이 등록되었습니다.", complaint.getLockerNumber()),
-                com.example.skhubox.domain.notification.NotificationType.COMPLAINT
-        );
+        // 탈퇴 사용자의 민원은 user가 null이므로 알림 생략
+        if (complaint.getUser() != null) {
+            notificationService.createNotification(
+                    complaint.getUser(),
+                    "민원 답변 등록",
+                    String.format("%s번 사물함 민원에 대한 답변이 등록되었습니다.", complaint.getLockerNumber()),
+                    com.example.skhubox.domain.notification.NotificationType.COMPLAINT
+            );
+        }
 
         return ComplaintResponse.of(complaint);
     }

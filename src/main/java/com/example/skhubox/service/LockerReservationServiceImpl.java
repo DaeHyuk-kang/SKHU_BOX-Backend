@@ -46,8 +46,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse reserveLocker(String studentNumber, Long lockerId) {
-        reservationExpirationService.expireOverdueReservations();
-
         // 대기열 모드: 분산락 획득 전에 먼저 대기열 등록/순번 확인
         if (queueModeSettingService.isQueueModeEnabled()) {
             Long myRank = waitingQueueService.getRank(studentNumber);
@@ -120,8 +118,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse returnLocker(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation reservation = lockerReservationRepository
@@ -145,8 +141,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse changeLocker(String studentNumber, Long newLockerId) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation currentReservation = lockerReservationRepository
@@ -204,8 +198,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     @Override
     @Transactional(readOnly = true)
     public LockerReservationResponse getMyReservation(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation reservation = lockerReservationRepository
@@ -239,14 +231,10 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     @Override
     @Transactional
     public void updateAllActiveExpirations(LocalDateTime newExpiryDate) {
-        List<LockerReservation> activeReservations = lockerReservationRepository.findAllByStatus(ReservationStatus.ACTIVE);
-        
-        for (LockerReservation reservation : activeReservations) {
-            reservation.updateExpiryDate(newExpiryDate);
-            reservation.getLocker().occupy(newExpiryDate);
-        }
-        
-        log.info("[Admin] Bulk updated {} active reservations to expiry date: {}", activeReservations.size(), newExpiryDate);
+        int updatedReservations = lockerReservationRepository.bulkUpdateExpiryDate(ReservationStatus.ACTIVE, newExpiryDate);
+        int updatedLockers = lockerRepository.bulkUpdateExpiredAt(LockerStatus.ACTIVE, newExpiryDate);
+        log.info("[Admin] Bulk updated {} reservations and {} lockers to expiry date: {}",
+                updatedReservations, updatedLockers, newExpiryDate);
     }
 
     // --- Private Helper Methods ---

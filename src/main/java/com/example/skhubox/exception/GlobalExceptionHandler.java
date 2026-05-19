@@ -48,10 +48,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(Exception e) {
         log.error("Internal Server Error: ", e);
-        String message = (e.getMessage() != null && !e.getMessage().isBlank())
-                ? e.getMessage() : ErrorCode.INTERNAL_SERVER_ERROR.getMessage();
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), message));
+                .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                        ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
     }
 }

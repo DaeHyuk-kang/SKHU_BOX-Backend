@@ -1,14 +1,12 @@
 package com.example.skhubox.service;
 
 import com.example.skhubox.common.RedisKeys;
-import com.example.skhubox.dto.QueueResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -18,71 +16,69 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
     private final RedisTemplate<String, String> redisTemplate;
 
     @Override
-    public QueueResponse register(String studentNumber, Long lockerId) {
-        String key = RedisKeys.LOCKER_QUEUE + lockerId;
-
-        Long existingRank = redisTemplate.opsForZSet().rank(key, studentNumber);
+    public Long register(String studentNumber) {
+        Long existingRank = redisTemplate.opsForZSet().rank(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
         if (existingRank != null) {
-            log.info("[Queue] User {} is already in queue for locker {}. Rank: {}", studentNumber, lockerId, existingRank + 1);
-            return QueueResponse.of(lockerId, existingRank + 1, "이미 대기열에 등록되어 있습니다.");
+            log.info("[Queue] User {} already in queue. Rank: {}", studentNumber, existingRank + 1);
+            return existingRank + 1;
         }
-
-        redisTemplate.opsForZSet().add(key, studentNumber, System.currentTimeMillis());
-        redisTemplate.expire(key, 10, TimeUnit.MINUTES);
-
-        Long rank = redisTemplate.opsForZSet().rank(key, studentNumber);
+        redisTemplate.opsForZSet().add(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber, System.currentTimeMillis());
+        Long rank = redisTemplate.opsForZSet().rank(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
         long displayRank = (rank != null) ? rank + 1 : 0;
-
-        log.info("[Queue] User {} registered for locker {}. Assigned Rank: {}", studentNumber, lockerId, displayRank);
-        return QueueResponse.of(lockerId, displayRank, "대기열에 성공적으로 등록되었습니다.");
+        log.info("[Queue] User {} registered. Rank: {}", studentNumber, displayRank);
+        return displayRank;
     }
 
     @Override
-    public Long getRank(String studentNumber, Long lockerId) {
-        String key = RedisKeys.LOCKER_QUEUE + lockerId;
-        Long rank = redisTemplate.opsForZSet().rank(key, studentNumber);
+    public Long getRank(String studentNumber) {
+        Long rank = redisTemplate.opsForZSet().rank(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
         return (rank != null) ? rank + 1 : null;
     }
 
     @Override
-    public String getFirstStudentNumber(Long lockerId) {
-        String key = RedisKeys.LOCKER_QUEUE + lockerId;
-        Set<String> members = redisTemplate.opsForZSet().range(key, 0, 0);
-        if (members == null || members.isEmpty()) {
-            return null;
-        }
-        return members.iterator().next();
+    public boolean isFirstUser(String studentNumber) {
+        Set<String> members = redisTemplate.opsForZSet().range(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, 0);
+        if (members == null || members.isEmpty()) return false;
+        return studentNumber.equals(members.iterator().next());
     }
 
     @Override
-    public boolean isFirstUser(String studentNumber, Long lockerId) {
-        String first = getFirstStudentNumber(lockerId);
-        return studentNumber != null && studentNumber.equals(first);
+    public void removeFromQueue(String studentNumber) {
+        redisTemplate.opsForZSet().remove(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
+        log.info("[Queue] User {} removed from global queue", studentNumber);
     }
 
     @Override
-    public void removeFromQueue(String studentNumber, Long lockerId) {
-        String key = RedisKeys.LOCKER_QUEUE + lockerId;
-        redisTemplate.opsForZSet().remove(key, studentNumber);
-        log.info("[Queue] User {} removed from queue for locker {}", studentNumber, lockerId);
-    }
-
-    @Override
-    public void skipFirstUser(Long lockerId) {
-        String key = RedisKeys.LOCKER_QUEUE + lockerId;
-        String first = getFirstStudentNumber(lockerId);
-        if (first != null) {
-            redisTemplate.opsForZSet().removeRange(key, 0, 0);
-            log.warn("[Queue-Admin] First user {} skipped for locker {} by administrator", first, lockerId);
-        }
+    public void skipFirstUser() {
+        Set<String> members = redisTemplate.opsForZSet().range(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, 0);
+        if (members == null || members.isEmpty()) return;
+        String first = members.iterator().next();
+        redisTemplate.opsForZSet().removeRange(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, 0);
+        log.warn("[Queue] First user {} skipped by administrator", first);
     }
 
     @Override
     public void clearAllQueues() {
-        Set<String> keys = redisTemplate.keys(RedisKeys.LOCKER_QUEUE + "*");
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-            log.info("[Queue-Admin] Cleared {} queue keys on queue mode disable", keys.size());
-        }
+        redisTemplate.delete(RedisKeys.LOCKER_QUEUE_GLOBAL);
+        log.info("[Queue] Global queue cleared");
+    }
+
+    @Override
+    public void removeFromAllQueues(String studentNumber) {
+        redisTemplate.opsForZSet().remove(RedisKeys.LOCKER_QUEUE_GLOBAL, studentNumber);
+        log.info("[Queue] User {} removed from global queue on withdraw", studentNumber);
+    }
+
+    @Override
+    public long getQueueSize() {
+        Long size = redisTemplate.opsForZSet().size(RedisKeys.LOCKER_QUEUE_GLOBAL);
+        return size != null ? size : 0;
+    }
+
+    @Override
+    public String getFirstStudentNumber() {
+        Set<String> members = redisTemplate.opsForZSet().range(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, 0);
+        if (members == null || members.isEmpty()) return null;
+        return members.iterator().next();
     }
 }

@@ -10,13 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class QueueResponse {
-    private Long lockerId;
     private Long rank;
     private String message;
 
-    public static QueueResponse of(Long lockerId, Long rank, String message) {
+    public static QueueResponse of(Long rank, String message) {
         return QueueResponse.builder()
-                .lockerId(lockerId)
                 .rank(rank)
                 .message(message)
                 .build();

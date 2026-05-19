@@ -51,7 +51,7 @@ public class NotificationService {
     public void markAsRead(String studentNumber, Long notificationId) {
         User user = getUserByStudentNumber(studentNumber);
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
         if (!notification.getUser().getId().equals(user.getId())) {
             throw new BusinessException(ErrorCode.NOTIFICATION_ACCESS_DENIED);
         }

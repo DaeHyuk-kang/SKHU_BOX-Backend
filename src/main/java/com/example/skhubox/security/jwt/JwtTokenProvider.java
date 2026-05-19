@@ -14,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
+// HMAC-SHA256 requires a key of at least 32 bytes
+
 @Component
 public class JwtTokenProvider {
 
@@ -30,7 +32,11 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes for HMAC-SHA256");
+        }
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String createAccessToken(Authentication authentication) {
@@ -74,8 +80,8 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Claims claims = getClaims(token);
-            return !"refresh".equals(claims.get("type", String.class));
+            getClaims(token);
+            return true;
         } catch (Exception e) {
             return false;
         }

@@ -80,11 +80,4 @@ public class User extends BaseEntity {
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
-
-    public void withdraw() {
-        this.deleted = true;
-        this.fcmToken = null;
-        this.studentNumber = "deleted_" + this.id + "_" + this.studentNumber;
-        this.email = "deleted_" + this.id + "_" + this.email;
-    }
 }

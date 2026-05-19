@@ -2,6 +2,7 @@ package com.example.skhubox.service;
 
 import com.example.skhubox.common.RedisKeys;
 import com.example.skhubox.domain.locker.Locker;
+import com.example.skhubox.domain.locker.LockerStatus;
 import com.example.skhubox.domain.operation.OperationLogType;
 import com.example.skhubox.domain.reservation.LockerReservation;
 import com.example.skhubox.domain.reservation.ReservationStatus;
@@ -45,34 +46,34 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse reserveLocker(String studentNumber, Long lockerId) {
-        reservationExpirationService.expireOverdueReservations();
+        // 대기열 모드: 분산락 획득 전에 먼저 대기열 등록/순번 확인
+        if (queueModeSettingService.isQueueModeEnabled()) {
+            Long myRank = waitingQueueService.getRank(studentNumber);
+
+            if (myRank == null) {
+                myRank = waitingQueueService.register(studentNumber);
+                log.info("[Queue] User {} auto-registered. Rank: {}", studentNumber, myRank);
+            }
+
+            if (myRank > 500) {
+                long waitingPosition = myRank - 500;
+                log.info("[Queue] User {} is waiting. Position: {}", studentNumber, waitingPosition);
+                throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
+                        "대기 중입니다. 대기 순번: " + waitingPosition + "번");
+            }
+
+            log.info("[Queue] User {} is in active zone. Rank: {}", studentNumber, myRank);
+        }
 
         String lockKey = RedisKeys.LOCKER_LOCK + lockerId;
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", 5, TimeUnit.SECONDS);
-        
+
         if (Boolean.FALSE.equals(acquired)) {
             log.warn("[Concurrency] Lock acquisition failed for locker {} by user {}", lockerId, studentNumber);
             throw new BusinessException(ErrorCode.LOCK_ACQUISITION_FAILED);
         }
 
         try {
-            if (queueModeSettingService.isQueueModeEnabled()) {
-                Long myRank = waitingQueueService.getRank(studentNumber, lockerId);
-
-                if (myRank == null) {
-                    throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
-                            "현재 대기열 모드입니다. 먼저 대기열에 등록해주세요.");
-                }
-
-                if (!waitingQueueService.isFirstUser(studentNumber, lockerId)) {
-                    log.warn("[Queue] User {} is in queue but NOT first for locker {}. Current Rank: {}",
-                            studentNumber, lockerId, myRank);
-                    throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
-                            "아직 본인 차례가 아닙니다. 내 순번: " + myRank + "번");
-                }
-
-                log.info("[Queue] User {} is FIRST in queue for locker {}. Proceeding to reservation.", studentNumber, lockerId);
-            }
 
             User user = getUser(studentNumber);
             Locker locker = getLockedLocker(lockerId);
@@ -87,7 +88,7 @@ public class LockerReservationServiceImpl implements LockerReservationService {
                 locker.occupy(savedReservation.getExpiredAt());
 
                 if (queueModeSettingService.isQueueModeEnabled()) {
-                    waitingQueueService.removeFromQueue(studentNumber, lockerId);
+                    waitingQueueService.removeFromQueue(studentNumber);
                 }
 
                 // 알림 생성
@@ -117,8 +118,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse returnLocker(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation reservation = lockerReservationRepository
@@ -142,8 +141,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
 
     @Override
     public LockerReservationResponse changeLocker(String studentNumber, Long newLockerId) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation currentReservation = lockerReservationRepository
@@ -201,8 +198,6 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     @Override
     @Transactional(readOnly = true)
     public LockerReservationResponse getMyReservation(String studentNumber) {
-        reservationExpirationService.expireOverdueReservations();
-
         User user = getUser(studentNumber);
 
         LockerReservation reservation = lockerReservationRepository
@@ -236,14 +231,10 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     @Override
     @Transactional
     public void updateAllActiveExpirations(LocalDateTime newExpiryDate) {
-        List<LockerReservation> activeReservations = lockerReservationRepository.findAllByStatus(ReservationStatus.ACTIVE);
-        
-        for (LockerReservation reservation : activeReservations) {
-            reservation.updateExpiryDate(newExpiryDate);
-            reservation.getLocker().occupy(newExpiryDate);
-        }
-        
-        log.info("[Admin] Bulk updated {} active reservations to expiry date: {}", activeReservations.size(), newExpiryDate);
+        int updatedReservations = lockerReservationRepository.bulkUpdateExpiryDate(ReservationStatus.ACTIVE, newExpiryDate);
+        int updatedLockers = lockerRepository.bulkUpdateExpiredAt(LockerStatus.ACTIVE, newExpiryDate);
+        log.info("[Admin] Bulk updated {} reservations and {} lockers to expiry date: {}",
+                updatedReservations, updatedLockers, newExpiryDate);
     }
 
     // --- Private Helper Methods ---
@@ -259,6 +250,10 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     }
 
     private void validateReservable(User user, Locker locker) {
+        if (locker.getStatus() == LockerStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.ALREADY_RESERVED_LOCKER);
+        }
+
         if (!locker.isNormal()) {
             throw new BusinessException(ErrorCode.LOCKER_NOT_NORMAL);
         }
@@ -275,6 +270,10 @@ public class LockerReservationServiceImpl implements LockerReservationService {
     }
 
     private void validateNewLocker(Locker newLocker) {
+        if (newLocker.getStatus() == LockerStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.ALREADY_RESERVED_LOCKER);
+        }
+
         if (!newLocker.isNormal()) {
             throw new BusinessException(ErrorCode.LOCKER_NOT_NORMAL);
         }

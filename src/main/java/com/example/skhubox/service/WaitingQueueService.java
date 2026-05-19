@@ -1,13 +1,13 @@
 package com.example.skhubox.service;
 
-import com.example.skhubox.dto.QueueResponse;
-
 public interface WaitingQueueService {
-    QueueResponse register(String studentNumber, Long lockerId);
-    Long getRank(String studentNumber, Long lockerId);
-    String getFirstStudentNumber(Long lockerId);
-    boolean isFirstUser(String studentNumber, Long lockerId);
-    void removeFromQueue(String studentNumber, Long lockerId);
-    void skipFirstUser(Long lockerId);
+    Long register(String studentNumber);
+    Long getRank(String studentNumber);
+    boolean isFirstUser(String studentNumber);
+    void removeFromQueue(String studentNumber);
+    void skipFirstUser();
     void clearAllQueues();
+    void removeFromAllQueues(String studentNumber);
+    long getQueueSize();
+    String getFirstStudentNumber();
 }

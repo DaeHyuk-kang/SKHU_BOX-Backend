@@ -7,8 +7,11 @@ import com.example.skhubox.dto.LockerResponse;
 import com.example.skhubox.dto.LockerReserveRequest;
 import com.example.skhubox.dto.QueueResponse;
 import com.example.skhubox.dto.ReservationHistoryResponse;
+import com.example.skhubox.exception.BusinessException;
+import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.security.CustomUserDetails;
 import com.example.skhubox.service.LockerReservationService;
+import com.example.skhubox.service.QueueModeSettingService;
 import com.example.skhubox.service.WaitingQueueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,6 +31,7 @@ public class LockerReservationController {
 
     private final LockerReservationService lockerReservationService;
     private final WaitingQueueService waitingQueueService;
+    private final QueueModeSettingService queueModeSettingService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<LockerResponse>>> getAllLockers() {
@@ -53,18 +57,32 @@ public class LockerReservationController {
         return ResponseEntity.ok(ApiResponse.ok("내 예약 정보 조회 성공", response));
     }
 
+    @Operation(summary = "대기열 수동 등록", description = "대기열 모드가 활성화된 경우 대기열에 수동으로 등록합니다.")
+    @PostMapping("/queue/register")
+    public ResponseEntity<ApiResponse<QueueResponse>> registerToQueue(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (!queueModeSettingService.isQueueModeEnabled()) {
+            throw new BusinessException(ErrorCode.QUEUE_MODE_NOT_ENABLED);
+        }
+        String studentNumber = userDetails.getUsername();
+        Long rank = waitingQueueService.register(studentNumber);
+        return ResponseEntity.ok(ApiResponse.ok("대기열 등록 성공", QueueResponse.of(rank, "현재 순번: " + rank)));
+    }
+
+    @Operation(summary = "내 대기 순번 조회", description = "전체 대기열에서 내 순번을 조회합니다.")
     @GetMapping("/queue/my-rank")
     public ResponseEntity<ApiResponse<QueueResponse>> getMyRank(
-            @RequestParam Long lockerId,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         String studentNumber = userDetails.getUsername();
-        Long rank = waitingQueueService.getRank(studentNumber, lockerId);
+        Long rank = waitingQueueService.getRank(studentNumber);
         if (rank == null) {
-            return ResponseEntity.ok(ApiResponse.ok("대기열에 등록되어 있지 않습니다.", QueueResponse.of(lockerId, null, "대기열 미등록")));
+            return ResponseEntity.ok(ApiResponse.ok("대기열에 등록되어 있지 않습니다.", QueueResponse.of(null, "대기열 미등록")));
         }
-        return ResponseEntity.ok(ApiResponse.ok("내 순번 조회 성공", QueueResponse.of(lockerId, rank, "현재 순번: " + rank)));
+        return ResponseEntity.ok(ApiResponse.ok("내 순번 조회 성공", QueueResponse.of(rank, "현재 순번: " + rank)));
     }
+
 
     @PostMapping("/reserve")
     public ResponseEntity<ApiResponse<LockerReservationResponse>> reserveLocker(

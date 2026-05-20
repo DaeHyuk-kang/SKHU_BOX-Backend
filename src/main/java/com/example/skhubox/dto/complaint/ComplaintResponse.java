@@ -20,7 +20,7 @@ public class ComplaintResponse {
     public static ComplaintResponse of(Complaint complaint) {
         return ComplaintResponse.builder()
                 .id(complaint.getId())
-                .studentNumber(complaint.getUser().getStudentNumber())
+                .studentNumber(complaint.getUser() != null ? complaint.getUser().getStudentNumber() : null)
                 .lockerNumber(complaint.getLockerNumber())
                 .content(complaint.getContent())
                 .answer(complaint.getAnswer())

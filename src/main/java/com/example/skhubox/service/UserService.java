@@ -12,6 +12,9 @@ import com.example.skhubox.dto.UserInfoResponse;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.repository.AdminActionLogRepository;
+import com.example.skhubox.repository.ComplaintRepository;
+import com.example.skhubox.repository.LockerReservationRepository;
+import com.example.skhubox.repository.NotificationRepository;
 import com.example.skhubox.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -27,6 +30,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final AdminActionLogRepository adminActionLogRepository;
     private final LockerReservationService lockerReservationService;
+    private final WaitingQueueService waitingQueueService;
+    private final NotificationRepository notificationRepository;
+    private final ComplaintRepository complaintRepository;
+    private final LockerReservationRepository lockerReservationRepository;
     private final OperationLogService operationLogService;
     private final StringRedisTemplate redisTemplate;
     private final PasswordEncoder passwordEncoder;
@@ -115,8 +122,9 @@ public class UserService {
 
     private void doWithdraw(User user) {
         String studentNumber = user.getStudentNumber();
+        Long userId = user.getId();
 
-        // 1. 사용 중인 사물함이 있다면 반납 처리
+        // 1. 사용 중인 사물함 반납
         try {
             lockerReservationService.returnLocker(studentNumber);
         } catch (BusinessException e) {
@@ -125,13 +133,23 @@ public class UserService {
             }
         }
 
-        // 2. Redis에서 Refresh Token 삭제하여 즉시 로그아웃 처리
+        // 2. 대기열에서 제거
+        waitingQueueService.removeFromAllQueues(studentNumber);
+
+        // 3. Refresh Token 삭제 (즉시 로그아웃)
         redisTemplate.delete(RedisKeys.REFRESH_TOKEN + studentNumber);
 
-        // 3. 소프트 딜리트 + 학번/이메일 익명화
-        user.withdraw();
+        // 4. 알림 삭제 (개인 데이터)
+        notificationRepository.deleteAllByUserId(userId);
 
-        // 4. 로그 기록
+        // 5. 민원 user 참조 NULL 처리 (민원 기록 보존)
+        complaintRepository.nullifyUser(userId);
+
+        // 6. 예약 이력 user 참조 NULL 처리 (이력 보존)
+        lockerReservationRepository.nullifyUser(userId);
+
+        // 7. 로그 기록 후 사용자 물리적 삭제
         operationLogService.log(OperationLogType.USER_WITHDRAWN, "회원 탈퇴", studentNumber);
+        userRepository.delete(user);
     }
 }

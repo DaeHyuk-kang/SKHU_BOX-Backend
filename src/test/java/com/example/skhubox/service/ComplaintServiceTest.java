@@ -7,6 +7,7 @@ import com.example.skhubox.dto.complaint.ComplaintAnswerRequest;
 import com.example.skhubox.dto.complaint.ComplaintRequest;
 import com.example.skhubox.dto.complaint.ComplaintResponse;
 import com.example.skhubox.repository.ComplaintRepository;
+import com.example.skhubox.repository.NotificationRepository;
 import com.example.skhubox.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,10 +31,14 @@ class ComplaintServiceTest {
     @Autowired
     private ComplaintRepository complaintRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @AfterEach
     void tearDown() {
-        complaintRepository.deleteAll();
-        userRepository.deleteAll();
+        notificationRepository.deleteAllInBatch();
+        complaintRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test

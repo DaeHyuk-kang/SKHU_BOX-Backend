@@ -11,6 +11,7 @@ import com.example.skhubox.dto.LockerReservationResponse;
 import com.example.skhubox.dto.LockerResponse;
 import com.example.skhubox.dto.QueueResponse;
 import com.example.skhubox.dto.ReservationHistoryResponse;
+import com.example.skhubox.dto.admin.ExpiringReservationResponse;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.repository.LockerRepository;
@@ -226,6 +227,18 @@ public class LockerReservationServiceImpl implements LockerReservationService {
         reservation.getLocker().occupy(newExpiryDate); // 사물함 테이블의 만료일도 동기화
         log.info("[Admin] Updated expiry date for reservation {} and locker {} to {}", 
                 reservationId, reservation.getLocker().getId(), newExpiryDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExpiringReservationResponse> getExpiringReservations(int days) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime deadline = now.plusDays(days);
+        return lockerReservationRepository
+                .findAllByStatusAndExpiredAtBetweenOrderByExpiredAtAsc(ReservationStatus.ACTIVE, now, deadline)
+                .stream()
+                .map(ExpiringReservationResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Override

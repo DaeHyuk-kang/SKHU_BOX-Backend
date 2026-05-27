@@ -61,4 +61,5 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<List<AdminUserListResponse>>> getAllAdmins() {
         return ResponseEntity.ok(ApiResponse.ok("관리자 목록 조회 성공", userService.getAllAdmins()));
     }
+
 }

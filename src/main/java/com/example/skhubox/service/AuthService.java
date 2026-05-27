@@ -147,6 +147,7 @@ public class AuthService {
         return generateCode();
     }
 
+
     private void sendEmail(String to, String code) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

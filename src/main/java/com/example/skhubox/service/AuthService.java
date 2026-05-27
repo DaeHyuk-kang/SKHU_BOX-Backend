@@ -30,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -116,7 +115,7 @@ public class AuthService {
     public void requestPasswordReset(PasswordResetRequest request) {
         userRepository.findByStudentNumberAndEmailAndDeletedFalse(request.getStudentNumber(), request.getEmail())
                 .ifPresent(user -> {
-                    String code = generateCode();
+                    String code = generateResetCode();
                     redisTemplate.opsForValue().set(
                             RedisKeys.PASSWORD_RESET + code,
                             user.getStudentNumber(),
@@ -141,9 +140,11 @@ public class AuthService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private String generateCode() {
-        byte[] bytes = new byte[16];
-        SECURE_RANDOM.nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+        return String.format("%06d", SECURE_RANDOM.nextInt(1000000));
+    }
+
+    private String generateResetCode() {
+        return generateCode();
     }
 
     private void sendEmail(String to, String code) {

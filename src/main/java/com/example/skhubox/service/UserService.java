@@ -1,6 +1,8 @@
 package com.example.skhubox.service;
 
 import com.example.skhubox.domain.operation.OperationLogType;
+import com.example.skhubox.domain.reservation.LockerReservation;
+import com.example.skhubox.domain.reservation.ReservationStatus;
 import com.example.skhubox.domain.user.AdminActionLog;
 import com.example.skhubox.domain.user.User;
 import com.example.skhubox.domain.user.UserRole;
@@ -9,6 +11,7 @@ import com.example.skhubox.dto.ChangePasswordRequest;
 import com.example.skhubox.dto.NotificationSettingResponse;
 import com.example.skhubox.dto.UpdateProfileRequest;
 import com.example.skhubox.dto.UserInfoResponse;
+import com.example.skhubox.dto.admin.AdminUserListResponse;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.exception.ErrorCode;
 import com.example.skhubox.repository.AdminActionLogRepository;
@@ -21,6 +24,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -100,6 +107,30 @@ public class UserService {
 
     public UserInfoResponse getUserInfo(String studentNumber) {
         return UserInfoResponse.from(findByStudentNumber(studentNumber));
+    }
+
+    public List<AdminUserListResponse> getAllUsers(String name, String studentNumber) {
+        List<User> users = userRepository.findAllByDeletedFalseOrderByCreatedAtDesc();
+        if (name != null && !name.isBlank()) {
+            users = users.stream().filter(u -> u.getName().contains(name)).collect(Collectors.toList());
+        }
+        if (studentNumber != null && !studentNumber.isBlank()) {
+            users = users.stream().filter(u -> u.getStudentNumber().contains(studentNumber)).collect(Collectors.toList());
+        }
+        return users.stream()
+                .map(user -> {
+                    LockerReservation reservation = lockerReservationRepository
+                            .findByUser_IdAndStatusAndExpiredAtAfter(user.getId(), ReservationStatus.ACTIVE, LocalDateTime.now())
+                            .orElse(null);
+                    return AdminUserListResponse.of(user, reservation);
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<AdminUserListResponse> getAllAdmins() {
+        return userRepository.findAllByRoleAndDeletedFalse(UserRole.ADMIN).stream()
+                .map(user -> AdminUserListResponse.of(user, null))
+                .collect(Collectors.toList());
     }
 
     @Transactional

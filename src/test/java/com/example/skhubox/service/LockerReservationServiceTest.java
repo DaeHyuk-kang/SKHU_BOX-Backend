@@ -15,6 +15,8 @@ import com.example.skhubox.dto.LockerReservationResponse;
 import com.example.skhubox.exception.BusinessException;
 import com.example.skhubox.repository.LockerReservationRepository;
 import com.example.skhubox.repository.LockerRepository;
+import com.example.skhubox.repository.NotificationRepository;
+import com.example.skhubox.repository.OperationLogRepository;
 import com.example.skhubox.repository.UserRepository;
 
 import org.junit.jupiter.api.AfterEach;
@@ -40,11 +42,19 @@ class LockerReservationServiceTest {
     @Autowired
     private LockerReservationRepository lockerReservationRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
+    private OperationLogRepository operationLogRepository;
+
     @AfterEach
     void tearDown() {
-        lockerReservationRepository.deleteAll();
-        lockerRepository.deleteAll();
-        userRepository.deleteAll();
+        notificationRepository.deleteAllInBatch();
+        operationLogRepository.deleteAllInBatch();
+        lockerReservationRepository.deleteAllInBatch();
+        lockerRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test
@@ -70,7 +80,7 @@ class LockerReservationServiceTest {
         assertEquals(locker.getId(), reservation.getLocker().getId());
 
         Locker savedLocker = lockerRepository.findById(locker.getId()).orElseThrow();
-        assertEquals(LockerStatus.NORMAL, savedLocker.getStatus());
+        assertEquals(LockerStatus.ACTIVE, savedLocker.getStatus());
         assertTrue(lockerReservationRepository.existsByLocker_IdAndStatus(locker.getId(), ReservationStatus.ACTIVE));
     }
 

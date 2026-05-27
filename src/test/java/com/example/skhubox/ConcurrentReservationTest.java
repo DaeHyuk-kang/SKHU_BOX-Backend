@@ -2,6 +2,7 @@ package com.example.skhubox;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -139,6 +140,47 @@ public class ConcurrentReservationTest {
 
         assert waitingZone.get() <= TOTAL_USERS - ACTIVE_ZONE_LIMIT
                 : "대기열 초과: " + waitingZone.get();
+    }
+
+    @AfterAll
+    static void tearDown() throws Exception {
+        // 1. 사물함 반납
+        System.out.println("\n=== 테스트 사물함 반납 중... ===");
+        ExecutorService pool = Executors.newFixedThreadPool(50);
+        AtomicInteger returned = new AtomicInteger(0);
+
+        for (String token : tokens) {
+            pool.submit(() -> {
+                try {
+                    HttpRequest req = HttpRequest.newBuilder()
+                            .uri(URI.create(BASE_URL + "/api/lockers/return"))
+                            .header("Content-Type", "application/json")
+                            .header("Authorization", "Bearer " + token)
+                            .POST(HttpRequest.BodyPublishers.noBody())
+                            .timeout(Duration.ofSeconds(10))
+                            .build();
+                    HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+                    if (res.statusCode() == 200) returned.incrementAndGet();
+                } catch (Exception ignored) {}
+            });
+        }
+
+        pool.shutdown();
+        pool.awaitTermination(30, TimeUnit.SECONDS);
+        System.out.println("반납 완료: " + returned.get() + "명");
+
+        // 2. 테스트 유저 관련 DB 레코드 정리 (누적 방지)
+        System.out.println("=== 테스트 데이터 정리 중... ===");
+        try {
+            HttpRequest cleanupReq = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/admin/test-cleanup"))
+                    .header("Content-Type", "application/json")
+                    .DELETE()
+                    .timeout(Duration.ofSeconds(15))
+                    .build();
+            client.send(cleanupReq, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception ignored) {}
+        System.out.println("정리 완료");
     }
 
     private static String login(String studentNumber, String password) {

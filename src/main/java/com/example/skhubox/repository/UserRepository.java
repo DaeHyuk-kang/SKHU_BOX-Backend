@@ -33,5 +33,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByRole(UserRole role);
 
+    List<User> findAllByRoleAndDeletedFalse(UserRole role);
+
+    List<User> findAllByDeletedFalseOrderByCreatedAtDesc();
+
     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }

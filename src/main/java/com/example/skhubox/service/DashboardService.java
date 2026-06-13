@@ -135,12 +135,12 @@ public class DashboardService {
                 .map(row -> {
                     long buildingTotal = ((Number) row[1]).longValue();
                     long buildingActive = ((Number) row[2]).longValue();
-                    return AdminDashboardResponse.UsageRateByBuilding.builder()
-                            .building((String) row[0])
-                            .totalLockers(buildingTotal)
-                            .activeLockers(buildingActive)
-                            .usageRate(buildingTotal == 0 ? 0 : (buildingActive * 100.0) / buildingTotal)
-                            .build();
+                    return new AdminDashboardResponse.UsageRateByBuilding(
+                            (String) row[0],
+                            buildingTotal,
+                            buildingActive,
+                            buildingTotal == 0 ? 0 : (buildingActive * 100.0) / buildingTotal
+                    );
                 })
                 .toList();
 
@@ -152,22 +152,22 @@ public class DashboardService {
                         OperationLogType.RESERVATION_EXPIRED
                 ))
                 .stream()
-                .map(log -> AdminDashboardResponse.RecentReservationActivity.builder()
-                        .title(log.getTitle())
-                        .description(log.getDescription())
-                        .createdAt(log.getCreatedAt().format(DATE_TIME_FORMATTER))
-                        .build())
+                .map(log -> new AdminDashboardResponse.RecentReservationActivity(
+                        log.getTitle(),
+                        log.getDescription(),
+                        log.getCreatedAt().format(DATE_TIME_FORMATTER)
+                ))
                 .toList();
 
         List<AdminDashboardResponse.UnresolvedComplaint> unresolvedComplaints = complaintRepository
                 .findTop4ByStatusInOrderByCreatedAtDesc(unresolvedStatuses)
                 .stream()
-                .map(complaint -> AdminDashboardResponse.UnresolvedComplaint.builder()
-                        .id(complaint.getId())
-                        .lockerNumber(complaint.getLockerNumber())
-                        .status(complaint.getStatus().getDescription())
-                        .createdAt(complaint.getCreatedAt().format(DATE_TIME_FORMATTER))
-                        .build())
+                .map(complaint -> new AdminDashboardResponse.UnresolvedComplaint(
+                        complaint.getId(),
+                        complaint.getLockerNumber(),
+                        complaint.getStatus().getDescription(),
+                        complaint.getCreatedAt().format(DATE_TIME_FORMATTER)
+                ))
                 .toList();
 
         long expiringSoon = lockerReservationRepository
@@ -187,13 +187,13 @@ public class DashboardService {
                 .buildingUsageRates(buildingUsageRates)
                 .recentReservationActivities(recentReservationActivities)
                 .unresolvedComplaints(unresolvedComplaints)
-                .operationSummary(AdminDashboardResponse.OperationSummary.builder()
-                        .autoAssignedToday(operationLogRepository.countByTypeInAndCreatedAtBetween(
-                                List.of(OperationLogType.RESERVATION_ASSIGNED), startOfToday, endOfToday))
-                        .brokenLockers(brokenLockers)
-                        .expiringSoon(expiringSoon)
-                        .newUsersThisWeek(userRepository.countByCreatedAtBetween(startOfWeek, endOfToday))
-                        .build())
+                .operationSummary(new AdminDashboardResponse.OperationSummary(
+                        operationLogRepository.countByTypeInAndCreatedAtBetween(
+                                List.of(OperationLogType.RESERVATION_ASSIGNED), startOfToday, endOfToday),
+                        brokenLockers,
+                        expiringSoon,
+                        userRepository.countByCreatedAtBetween(startOfWeek, endOfToday)
+                ))
                 .build();
     }
 
@@ -216,10 +216,10 @@ public class DashboardService {
     }
 
     private AdminDashboardResponse.ProcessingHistory toProcessingHistory(OperationLog log) {
-        return AdminDashboardResponse.ProcessingHistory.builder()
-                .title(log.getTitle())
-                .description(log.getDescription())
-                .createdAt(log.getCreatedAt().format(DATE_TIME_FORMATTER))
-                .build();
+        return new AdminDashboardResponse.ProcessingHistory(
+                log.getTitle(),
+                log.getDescription(),
+                log.getCreatedAt().format(DATE_TIME_FORMATTER)
+        );
     }
 }

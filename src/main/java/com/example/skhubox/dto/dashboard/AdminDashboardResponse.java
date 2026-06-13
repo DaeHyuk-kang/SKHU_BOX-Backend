@@ -1,6 +1,7 @@
 package com.example.skhubox.dto.dashboard;
 
 import com.example.skhubox.dto.NotificationSettingResponse;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -24,7 +25,7 @@ public class AdminDashboardResponse {
     private OperationSummary operationSummary;
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class ProcessingHistory {
         private String title;
         private String description;
@@ -32,7 +33,7 @@ public class AdminDashboardResponse {
     }
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class UsageRateByBuilding {
         private String building;
         private long totalLockers;
@@ -41,7 +42,7 @@ public class AdminDashboardResponse {
     }
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class RecentReservationActivity {
         private String title;
         private String description;
@@ -49,7 +50,7 @@ public class AdminDashboardResponse {
     }
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class UnresolvedComplaint {
         private Long id;
         private String lockerNumber;
@@ -58,7 +59,7 @@ public class AdminDashboardResponse {
     }
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class OperationSummary {
         private long autoAssignedToday;
         private long brokenLockers;

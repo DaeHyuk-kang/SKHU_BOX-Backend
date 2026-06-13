@@ -99,6 +99,11 @@ public class AdminLockerService {
     public void assignUser(Long lockerId, String studentNumber) {
         Locker locker = getLocker(lockerId);
 
+        // BROKEN/DISABLED 사물함은 배정 불가 (ACTIVE·NORMAL만 허용)
+        if (locker.getStatus() != LockerStatus.ACTIVE && !locker.isNormal()) {
+            throw new BusinessException(ErrorCode.LOCKER_NOT_NORMAL);
+        }
+
         // 기존 예약 있으면 강제 반납
         lockerReservationRepository.findByLocker_IdAndStatus(lockerId, ReservationStatus.ACTIVE)
                 .ifPresent(r -> {

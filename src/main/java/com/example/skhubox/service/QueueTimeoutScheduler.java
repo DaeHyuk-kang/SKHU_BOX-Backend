@@ -1,5 +1,6 @@
 package com.example.skhubox.service;
 
+import com.example.skhubox.common.QueuePolicy;
 import com.example.skhubox.common.RedisKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +26,9 @@ public class QueueTimeoutScheduler {
 
         long cutoff = System.currentTimeMillis() - TIMEOUT_MILLIS;
 
-        // active zone(rank 1~500) 중 10분 지난 사용자만 제거
+        // active zone(rank 1~ACTIVE_ZONE_LIMIT) 중 10분 지난 사용자만 제거
         Set<String> activeZone = redisTemplate.opsForZSet()
-                .range(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, 499);
+                .range(RedisKeys.LOCKER_QUEUE_GLOBAL, 0, QueuePolicy.ACTIVE_ZONE_LIMIT - 1);
 
         if (activeZone == null || activeZone.isEmpty()) return;
 

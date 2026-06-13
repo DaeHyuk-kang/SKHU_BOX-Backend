@@ -1,5 +1,6 @@
 package com.example.skhubox.service;
 
+import com.example.skhubox.common.QueuePolicy;
 import com.example.skhubox.common.RedisKeys;
 import com.example.skhubox.domain.locker.Locker;
 import com.example.skhubox.domain.locker.LockerStatus;
@@ -56,8 +57,8 @@ public class LockerReservationServiceImpl implements LockerReservationService {
                 log.info("[Queue] User {} auto-registered. Rank: {}", studentNumber, myRank);
             }
 
-            if (myRank > 500) {
-                long waitingPosition = myRank - 500;
+            if (myRank > QueuePolicy.ACTIVE_ZONE_LIMIT) {
+                long waitingPosition = myRank - QueuePolicy.ACTIVE_ZONE_LIMIT;
                 log.info("[Queue] User {} is waiting. Position: {}", studentNumber, waitingPosition);
                 throw new BusinessException(ErrorCode.QUEUE_MODE_RESERVATION_BLOCKED,
                         "대기 중입니다. 대기 순번: " + waitingPosition + "번");

@@ -29,4 +29,12 @@ public interface LockerRepository extends JpaRepository<Locker, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Locker l SET l.expiredAt = :newExpiry WHERE l.status = :status")
     int bulkUpdateExpiredAt(LockerStatus status, LocalDateTime newExpiry);
+
+    List<Locker> findAllByOrderByBuildingAscFloorAscLockerNumberAsc();
+
+    List<Locker> findAllByBuildingOrderByFloorAscLockerNumberAsc(String building);
+
+    List<Locker> findAllByBuildingAndFloorOrderByLockerNumberAsc(String building, int floor);
+
+    List<Locker> findAllByIdIn(List<Long> ids);
 }

@@ -13,6 +13,9 @@ import java.util.List;
 @Repository
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     List<Complaint> findByUserId(Long userId);
+
+    // 내 민원 목록 조회 - ComplaintResponse에서 user.studentNumber 접근 (user fetch)
+    @Query("SELECT c FROM Complaint c JOIN FETCH c.user WHERE c.user.id = :userId ORDER BY c.createdAt DESC")
     List<Complaint> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     @Modifying(clearAutomatically = true)

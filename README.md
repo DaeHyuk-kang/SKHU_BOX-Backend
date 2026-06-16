@@ -233,3 +233,68 @@ JOIN lockers l ON r.locker_id = l.id
 LEFT JOIN users u ON r.user_id = u.id
 WHERE r.status = 'ACTIVE'
 ```
+
+### JWT 인증 (Access + Refresh Token)
+
+Spring Security + JWT 기반 무상태(Stateless) 인증을 구현합니다.
+
+- Access Token: 유효시간 **15분** (`jwt.expiration=900000ms`)
+- Refresh Token: 유효시간 **7일** (`jwt.refresh-expiration=604800000ms`), Redis에 저장
+- 토큰 갱신: `POST /api/auth/refresh` — Redis에 저장된 Refresh Token 일치 여부 검증 후 재발급
+- 로그아웃 / 탈퇴 시 Redis에서 Refresh Token 즉시 삭제 → 기존 토큰 무효화
+
+```
+로그인 → Access Token (15분) + Refresh Token (7일, Redis 저장)
+         ↓ Access Token 만료 시
+POST /api/auth/refresh → Redis 검증 → 새 토큰 쌍 발급
+```
+
+### Redis 대기열 (Sorted Set)
+
+사물함 예약 수요가 몰릴 때 선착순 대기열 모드를 제공합니다.
+
+- 자료구조: Redis **Sorted Set** — score에 등록 시각(ms)을 저장해 선입선출 보장
+- 활성존: 상위 **500명** (`QueuePolicy.ACTIVE_ZONE_LIMIT`) — 예약 시도 가능
+- 대기존: 501번째 이후 — 예약 요청 시 `"대기 순번: N번"` 응답 반환
+- 타임아웃: 활성존 사용자가 **10분** 동안 예약하지 않으면 자동 제거 (QueueTimeoutScheduler, 60초 주기)
+- 모드 OFF 시: 전체 대기열 즉시 삭제 (`ZDELETE locker:queue:global`)
+
+```
+등록 → ZADD locker:queue:global <timestamp> <studentNumber>
+순번 조회 → ZRANK locker:queue:global <studentNumber> + 1
+예약 성공 → ZREM locker:queue:global <studentNumber>
+```
+
+### 이메일 인증 (Redis TTL)
+
+회원가입 및 비밀번호 재설정 시 이메일 인증코드를 Redis로 관리합니다.
+
+| 단계 | Redis Key | TTL |
+|------|-----------|-----|
+| 인증코드 발송 | `email:verify:{email}` | 5분 |
+| 인증 완료 플래그 | `email:verified:{email}` | 30분 |
+| 비밀번호 재설정 코드 | `password:reset:{code}` | 15분 |
+
+- 인증코드: `SecureRandom`으로 생성한 6자리 숫자
+- 인증 완료 후 코드 즉시 삭제, 플래그 TTL 내 회원가입 완료해야 함
+
+### 예약 만료 스케줄러
+
+학기 종료 시 만료된 사물함 예약을 자동으로 처리합니다.
+
+- 구현 위치: `ReservationExpirationService.expireOverdueReservations()`
+- 주기: **60초**마다 실행
+- 동작: `status=ACTIVE`이고 `expiredAt < now`인 예약을 `EXPIRED`로 변경, 사물함 상태 `NORMAL`로 해제
+- 만료 기준: 1학기 예약 → 7월 1일, 2학기 예약 → 다음 해 1월 1일 자동 계산
+
+### FCM 푸시 알림
+
+사물함 예약 완료, 민원 답변 등 주요 이벤트 발생 시 기기에 푸시 알림을 전송합니다.
+
+- SDK: Firebase Admin SDK (`firebase-admin:9.4.3`)
+- 발송 조건: 사용자 알림 설정이 켜져 있고 FCM 토큰이 등록된 경우
+- 비동기 발송: `FirebaseMessaging.getInstance().sendAsync()` — 알림 실패가 메인 로직에 영향을 주지 않음
+- 알림 발생 시점:
+  - 사물함 예약 완료
+  - 민원 답변 등록
+  - 예약 만료 임박 (관리자 수동 발송)

@@ -2,8 +2,8 @@
 
 성공회대학교 사물함 예약 시스템 백엔드 서버입니다.
 
-백엔드 서버 : ``` https://www.skhubox.site/ ```   
-SKHUBox 사이트 : ``` https://skhubox.vercel.app/ ```
+백엔드 서버 :  https://www.skhubox.site/   
+SKHUBox 사이트 :  https://skhubox.vercel.app/ 
 
 ---
 
